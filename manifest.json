@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+
+  "name": "TL;DR Facechat",
+  "description": "Summarizes Facebook Chat comments by collapsing them into blocks",
+  "version": "0.1",
+  "background" : {
+    "scripts": ["/build/background.js"]
+  },
+  "permissions": [
+	"tabs",
+	"https://www.facebook.com/messages/*"
+  ],
+  "page_action": {
+	"default_title": "Summarize",
+	"default_icon": "icon_19.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://www.facebook.com/messages/*","https://www.facebook.com/messages/*"],
+      "css": ["/style/extension.css"]
+    }
+  ]
+}
