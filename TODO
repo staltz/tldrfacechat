@@ -1,5 +1,6 @@
 
-- TODO NEW Block replaces the messages it represents
-- TODO NEW On click block, expand messages
++ DONE NEW Block replaces the messages it represents
++ DONE NEW On click block, expand messages
++ DONE NEW Show keywords in blocks
+- TODO NEW Merge small blocks
 - TODO IMPROVE Robustness
-- TODO NEW Show keywords in blocks
