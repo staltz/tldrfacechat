@@ -17,7 +17,6 @@ class Message
 Stamp = {}
 Stamp._className = "summarizationStamp5678"
 Stamp.set = ->
-	console.log "Added the Stamp"
 	stamp = document.createElement('div')
 	stamp.className = Stamp._className
 	stamp.style.display = "none"
@@ -25,14 +24,13 @@ Stamp.set = ->
 	return stamp
 Stamp.isSet = ->
 	return document.querySelector(".#{ Stamp._className }") != null
-Stamp.waitAndUnset = ->
+Stamp.waitAndUnset = (milisec) ->
 	tmout = setTimeout(->
 		stamp = document.querySelector(".#{ Stamp._className }")
 		if stamp != null
-			console.log "Removed the Stamp"
 			stamp.remove()
 		return true
-	,1500)
+	,milisec)
 	return tmout
 
 
@@ -72,7 +70,7 @@ class Block
 	constructor: (participants, rawmessages, first, last) ->
 		@participants_ = participants
 		@rawmessages_ = []
-		keywords = {}
+		@keywords_ = {}
 		for i in [first..last]
 			@rawmessages_.push(rawmessages[i])
 			msg = new Message(rawmessages[i])
@@ -82,19 +80,11 @@ class Block
 				word = word.toLowerCase()
 				if not(word in @badwords_) and word.search(/\w/) >= 0
 					word = word.charAt(0).toUpperCase()+word.slice(1)
-					if keywords[word] then keywords[word]+=1 else keywords[word] = 1
-		@topkeywords_ = []
-		`for(var key in keywords) {
-			//if(keywords[key] === 1)
-			//	delete keywords[key];
-			//else
-				this.topkeywords_.push([key, keywords[key]]);
-		}`
-		sortDesc = (array) ->
-			return array.sort( (a, b) ->
-				`((a[1] > b[1]) ? -1 : ((a[1] < b[1]) ? 1 : 0))`
-			)
-		@topkeywords_ = (item[0] for item in sortDesc(@topkeywords_)[0..5])
+					if @keywords_[word] then @keywords_[word]+=1 else @keywords_[word] = 1
+	getRawMessages: ->
+		@rawmessages_
+	getKeywords: ->
+		@keywords_
 	badwords_: [
 		"o","e","a","de","pra","do","da","para","que","q","eu","ele",
 		"vc","vo","sem","no","na","esse","essa","este","esta","aquele","aquela",
@@ -104,8 +94,25 @@ class Block
 		"ss","nn","uma","um","dois","duas","tipo","tambem","tbm","também","te",
 		"até","nos","nas","tá","se","em","cada","minha","minhas","meu","meus",
 		"desde","tmbm","mas","as","os","merda","isso","isto","mesmo","mesma",
-		"bem","alguma","alguns","algum","sei","vai","dar","depois","antes","aqui"
+		"bem","alguma","alguns","algum","sei","vai","dar","depois","antes","aqui",
+		"to","só","so","estou","você","voce"
 	]
+	merge: (block_above) ->
+		# Merge messages
+		@rawmessages_ = block_above.getRawMessages().concat(@rawmessages_)
+		# Merge participants
+		for rawmsg in block_above.getRawMessages()
+			msg = new Message(rawmsg)
+			@participants_.register(msg)
+		# Merge keywords
+		`for(var word in block_above.getKeywords()) {
+			if(this.keywords_[word]) {
+				this.keywords_[word] += 1;	
+			} else {
+				this.keywords_[word] = 1;
+			}
+		}`
+		return true
 	render: ->
 		# Create the block element
 		block = document.createElement('a')
@@ -113,9 +120,22 @@ class Block
 		block.href = "#"
 		block.innerHTML = @participants_.getAuthorsImgs()
 		block.innerHTML = block.innerHTML.concat(" x#{ @participants_.getNumMsgs() }")
+		# Process keywords
+		topkeywords = []
+		`for(var word in this.keywords_) {
+			//if(keywords[word] === 1)
+			//	delete keywords[word];
+			//else
+				topkeywords.push([word, this.keywords_[word]]);
+		}`
+		sortDesc = (array) ->
+			return array.sort( (a, b) ->
+				`((a[1] > b[1]) ? -1 : ((a[1] < b[1]) ? 1 : 0))`
+			)
+		topkeywords = (item[0] for item in sortDesc(topkeywords)[0..5])
 		keywords = document.createElement('span')
 		keywords.className = "summaryKeywords"
-		keywords.innerHTML = @topkeywords_.join(", ")
+		keywords.innerHTML = topkeywords.join(", ")
 		block.appendChild(keywords)
 		# Injects msgs into block
 		msgContainer = document.createElement('ul')
@@ -137,9 +157,11 @@ class Block
 			else
 				block = e.target
 			packedMsgs = msgContainer.querySelectorAll('li')
+			turnOffListener()		
 			for rawmsg in packedMsgs
 				block.parentNode.insertBefore(rawmsg, block)
 			block.remove()
+			turnOnListener()
 			e.stopPropagation()
 			e.preventDefault()
 		,false)
@@ -149,6 +171,7 @@ class Block
 summarize = (messages) ->
 	console.log "Inside summarize()"
 	participants = new Participants()
+	blocks = []
 	block_end = messages.length-1
 	for i in [messages.length-1..0]
 		#console.log messages[i]
@@ -157,12 +180,18 @@ summarize = (messages) ->
 		if participants.getNumAuthors() == 2 and not participants.hasAuthor(msg.author())
 			#console.log "==> Detected a block starting at #{ i+1 } and finishing at #{ block_end }"
 			block = new Block(participants, messages, i+1, block_end)
-			block.render()
+			if participants.getNumMsgs() < 6 and blocks.length > 0
+				#console.log "----> Merging this block with the block below"
+				blocks[0].merge(block)
+			else
+				blocks.unshift(block)
+			# Start a new block
 			participants = new Participants()
 			block_end = i
 		participants.register(msg)
-	block = new Block(participants, messages, 0, block_end)
-	block.render()
+	blocks.unshift( new Block(participants, messages, 0, block_end) )
+	for block in blocks
+		block.render()
 
 
 scrollToTopLoadMsgs = ->
@@ -173,39 +202,50 @@ scrollToBottomMessage = (messages) ->
 	messages[messages.length-1].scrollIntoView()
 
 
-streamLengthPattern = [12, 25, 52, 93, 132, 178, 210, 250, 296, 352, 399]
-predictNextStreamLength = (currentStreamLength) ->
-	for x in streamLengthPattern
-		if x > currentStreamLength
-			return x
-	return streamLengthPattern[streamLengthPattern.length-1]
+triggerSummarizeTimeout = null
 
+turnOnListener = ->
+	document.getElementById("webMessengerRecentMessages").addEventListener('DOMNodeInserted', insertedListener, false)
+
+turnOffListener = ->
+	document.getElementById("webMessengerRecentMessages").removeEventListener('DOMNodeInserted', insertedListener, false)
+
+insertedListener = (event) ->
+	console.log("DOM Node inserted")
+	clearTimeout(triggerSummarizeTimeout)
+	triggerSummarizeTimeout = setTimeout( ->
+		turnOffListener()
+		nodelist = document.querySelectorAll("li.webMessengerMessageGroup")
+		messages = []
+		for m in nodelist
+			messages.push(m)
+		scrollToBottomMessage(messages)
+		#console.log "Will summarize in total #{ messages.length-7 } msgs"
+		summarize( messages.splice(0,messages.length-7) )
+		spacer = document.createElement('div')
+		spacer.className = 'summarizationSpacer'
+		spacer.innerHTML = '<div class="summarizationSpacerMore">&uarr; &uarr; &uarr;</div>'
+		msgsContainer = document.getElementById("webMessengerRecentMessages")
+		msgsContainer.insertBefore(spacer, msgsContainer.firstChild)
+		Stamp.waitAndUnset(1500)
+		turnOnListener()
+	,613)
+	return true
 
 run = ->
-	console.log "Inside run()"
+	#console.log "Inside run()"
 	if Stamp.isSet()
 		return false
 	Stamp.set()
 	messages = document.querySelectorAll("li.webMessengerMessageGroup")
+	#console.log "Initially: #{ messages.length } messages"
 	if messages.length > 100
 		summarize(messages)
 	else # Load more messages
-		predictedStreamLength = predictNextStreamLength(messages.length)
 		scrollToTopLoadMsgs()
 		msgsContainer = document.getElementById("webMessengerRecentMessages")
 		if msgsContainer
-			msgsContainer.addEventListener('DOMNodeInserted', (event)->
-				messages = document.querySelectorAll("li.webMessengerMessageGroup")
-				#console.log "messages.length is #{messages.length}"
-				if messages.length == predictedStreamLength-8
-					this.removeEventListener('DOMNodeInserted', arguments.callee, false)
-				else
-					return false
-				scrollToBottomMessage(messages)
-				summarize(messages)
-				Stamp.waitAndUnset()
-				return true
-			,false)
+			msgsContainer.addEventListener('DOMNodeInserted', insertedListener,false)
 	return true
 
 

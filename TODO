@@ -1,3 +1,4 @@
 
-- TODO NEW Merge small blocks
-- TODO IMPROVE Robustness: when user loads more msgs, summarize automatically reruns
++ DONE NEW Merge small blocks
++ DONE IMPROVE Robustness: when user loads more msgs, summarize automatically reruns
+>>> 0.2

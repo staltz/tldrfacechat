@@ -5,6 +5,18 @@ a.fbNubButton.summarizedBlock {
 	height: auto;
 }
 
+.summarizationSpacer {
+	height: 350px;
+	position: relative;
+}
+.summarizationSpacer > .summarizationSpacerMore {
+	position: absolute;
+	bottom: 35px;
+	width: 100%;
+	text-align: center;
+	font-size: 200%;
+}
+
 .summaryKeywords {
 	display: block;
 	margin-top: 3px;

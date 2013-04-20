@@ -3,7 +3,7 @@
 
   "name": "TL;DR Facechat",
   "description": "Summarizes Facebook Chat comments by collapsing them into blocks",
-  "version": "0.1",
+  "version": "0.2",
   "background" : {
     "scripts": ["/build/background.js"]
   },
