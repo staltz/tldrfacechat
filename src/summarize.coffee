@@ -13,7 +13,8 @@ class Message
 	image: ->
 		@imgEl_
 
-Stamp = {} 
+
+Stamp = {}
 Stamp._className = "summarizationStamp5678"
 Stamp.set = ->
 	console.log "Added the Stamp"
@@ -33,6 +34,7 @@ Stamp.waitAndUnset = ->
 		return true
 	,1500)
 	return tmout
+
 
 class Participants
 	constructor: ->
@@ -64,6 +66,7 @@ class Participants
 			imgsStr = imgsStr.concat("&nbsp;");
 		}`
 		return imgsStr
+
 
 class Block
 	constructor: (participants, rawmessages, first, last) ->
@@ -114,9 +117,6 @@ class Block
 		keywords.className = "summaryKeywords"
 		keywords.innerHTML = @topkeywords_.join(", ")
 		block.appendChild(keywords)
-		block.style.paddingLeft = "20px"
-		block.style.paddingRight = "20px"
-		block.style.height = "auto"
 		# Injects msgs into block
 		msgContainer = document.createElement('ul')
 		msgContainer.className = "summaryMsgContainer"
@@ -132,20 +132,46 @@ class Block
 			parent.removeChild(rawmsg)
 		# Click handler
 		block.addEventListener("click", (e) -> 
+			if e.target.className == "summaryKeywords"
+				block = e.target.parentElement
+			else
+				block = e.target
 			packedMsgs = msgContainer.querySelectorAll('li')
 			for rawmsg in packedMsgs
-				e.target.parentNode.insertBefore(rawmsg, e.target)
+				block.parentNode.insertBefore(rawmsg, block)
 			block.remove()
 			e.stopPropagation()
 			e.preventDefault()
 		,false)
 		return true
 
+
+summarize = (messages) ->
+	console.log "Inside summarize()"
+	participants = new Participants()
+	block_end = messages.length-1
+	for i in [messages.length-1..0]
+		#console.log messages[i]
+		msg = new Message(messages[i])
+		#console.log "Parsing msg ##{ i } #{ msg.author() }: #{ msg.text() }"
+		if participants.getNumAuthors() == 2 and not participants.hasAuthor(msg.author())
+			#console.log "==> Detected a block starting at #{ i+1 } and finishing at #{ block_end }"
+			block = new Block(participants, messages, i+1, block_end)
+			block.render()
+			participants = new Participants()
+			block_end = i
+		participants.register(msg)
+	block = new Block(participants, messages, 0, block_end)
+	block.render()
+
+
 scrollToTopLoadMsgs = ->
 	document.querySelector("._2nc").querySelector(".uiScrollableAreaContent").scrollIntoView()
 
+
 scrollToBottomMessage = (messages) ->
 	messages[messages.length-1].scrollIntoView()
+
 
 streamLengthPattern = [12, 25, 52, 93, 132, 178, 210, 250, 296, 352, 399]
 predictNextStreamLength = (currentStreamLength) ->
@@ -154,43 +180,34 @@ predictNextStreamLength = (currentStreamLength) ->
 			return x
 	return streamLengthPattern[streamLengthPattern.length-1]
 
-summarize = ->
-	console.log "Inside summarize()"
+
+run = ->
+	console.log "Inside run()"
 	if Stamp.isSet()
 		return false
 	Stamp.set()
-	# Load more messages
-	predictedStreamLength = predictNextStreamLength(document.querySelectorAll("li.webMessengerMessageGroup").length)
-	scrollToTopLoadMsgs()
-	msgsContainer = document.getElementById("webMessengerRecentMessages")
-	if msgsContainer
-		msgsContainer.addEventListener('DOMNodeInserted', (event)->
-			messages = document.querySelectorAll("li.webMessengerMessageGroup")
-			#console.log "messages.length is #{messages.length}"
-			if messages.length == predictedStreamLength-8
-				this.removeEventListener('DOMNodeInserted', arguments.callee, false)
-			else
-				return false
-			scrollToBottomMessage(messages)
-			console.log "Running summarize core"
-			# Summarize it
-			participants = new Participants()
-			block_end = messages.length-1
-			for i in [messages.length-1..0]
-				#console.log messages[i]
-				msg = new Message(messages[i])
-				#console.log "Parsing msg ##{ i } #{ msg.author() }: #{ msg.text() }"
-				if participants.getNumAuthors() == 2 and not participants.hasAuthor(msg.author())
-					#console.log "==> Detected a block starting at #{ i+1 } and finishing at #{ block_end }"
-					block = new Block(participants, messages, i+1, block_end)
-					block.render()
-					participants = new Participants()
-					block_end = i
-				participants.register(msg)
-			block = new Block(participants, messages, 0, block_end)
-			block.render()
-			Stamp.waitAndUnset()
-		,false)
+	messages = document.querySelectorAll("li.webMessengerMessageGroup")
+	if messages.length > 100
+		summarize(messages)
+	else # Load more messages
+		predictedStreamLength = predictNextStreamLength(messages.length)
+		scrollToTopLoadMsgs()
+		msgsContainer = document.getElementById("webMessengerRecentMessages")
+		if msgsContainer
+			msgsContainer.addEventListener('DOMNodeInserted', (event)->
+				messages = document.querySelectorAll("li.webMessengerMessageGroup")
+				#console.log "messages.length is #{messages.length}"
+				if messages.length == predictedStreamLength-8
+					this.removeEventListener('DOMNodeInserted', arguments.callee, false)
+				else
+					return false
+				scrollToBottomMessage(messages)
+				summarize(messages)
+				Stamp.waitAndUnset()
+				return true
+			,false)
 	return true
 
-summarize()
+
+run()
+
