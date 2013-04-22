@@ -9,7 +9,8 @@
   },
   "permissions": [
 	"tabs",
-	"https://www.facebook.com/messages/*"
+	"https://www.facebook.com/messages/*",
+	"http://www.facebook.com/messages/*"
   ],
   "page_action": {
 	"default_title": "Summarize",
