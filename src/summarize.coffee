@@ -2,10 +2,10 @@
 class Message
 	constructor: (element) ->
 		@imgEl_ = element.querySelector('img._s0')
-		@author_ = element.querySelector('._36 > a').innerHTML
+		@author_ = element.querySelector('._36 > a').innerText
 		@text_ = ""
 		for p in element.querySelectorAll("._38 > p")
-			@text_ = @text_.concat(p.innerHTML).concat(" ")
+			@text_ = @text_.concat(p.innerText).concat(" ")
 	author: ->
 		@author_
 	text: ->
@@ -95,7 +95,8 @@ class Block
 		"até","nos","nas","tá","se","em","cada","minha","minhas","meu","meus",
 		"desde","tmbm","mas","as","os","merda","isso","isto","mesmo","mesma",
 		"bem","alguma","alguns","algum","sei","vai","dar","depois","antes","aqui",
-		"to","só","so","estou","você","voce"
+		"to","só","so","estou","você","voce","ja","já","pro","mais","tudo","faz",
+		"porque","mim"
 	]
 	merge: (block_above) ->
 		# Merge messages
