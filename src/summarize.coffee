@@ -96,7 +96,7 @@ class Block
 		"desde","tmbm","mas","as","os","merda","isso","isto","mesmo","mesma",
 		"bem","alguma","alguns","algum","sei","vai","dar","depois","antes","aqui",
 		"to","só","so","estou","você","voce","ja","já","pro","mais","tudo","faz",
-		"porque","mim"
+		"porque","mim","nem","seu","seus","sua","suas","ou","vou","ter"
 	]
 	merge: (block_above) ->
 		# Merge messages
